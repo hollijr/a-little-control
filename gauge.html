@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Gauge Demo</title>
+	
+	<script type="text/javascript" src="Gauge.js"></script>
+	<script type="text/javascript">
+	
+	window.addEventListener("load", eventWindowLoaded, false);
+
+	function eventWindowLoaded () {
+		gaugeDemo();
+	}
+
+	function gaugeDemo() {
+
+		var gaugeSettings = [
+			{	"inputGranularity" : 1,
+				titleLine1 : "ACCUMULATOR",
+				titleLine2 : "PRESSURE",
+				titleFont : "18pt Arial",
+				gaugeDiam : 175,
+				rimWidth : 25,
+				faceColor : "white",
+				centerX : 200,
+				centerY : 250,
+				startDegree : 135,
+				endDegree : 405,
+				outerScaleDiam : 100,
+				outerScaleRange : {s: 0, e: 6000},
+				outerScaleIntervals : [500,100,0],
+				outerScaleFnt : "8pt Calibri",
+				outerScaleColor : "black",
+				outerScaleUnit : "PSI",
+				hasInnerScale : true,
+				innerScaleConvFactor : 0.068573,
+				innerScaleDiam : 96,
+				innerScaleStartLabel : 0,
+				innerScaleIntervals : [50,10,0],
+				innerScaleFnt : "8pt Arial",
+				innerScaleColor : "red",
+				innerScaleUnit : "Kg/cm3",
+				innerScaleToEnd : true,
+				dialBaseDiam : 25,
+				pointerColor: "blue",
+				digWd : 60,
+				digHt : 14,
+				digFnt : "12pt Calibri",
+				digBC : "#efefef"
+			},
+			{	inputGranularity : 1,
+				titleLine1 : "RIG AIR",
+				titleLine2 : "PRESSURE",
+				titleFont : "18pt Arial",
+				gaugeDiam : 175,
+				rimWidth : 25,
+				faceColor : "white",
+				centerX : 200,
+				centerY : 250,
+				startDegree : 135,
+				endDegree : 405,
+				outerScaleDiam : 100,
+				outerScaleRange : {s: 0, e: 300},
+				outerScaleIntervals : [25,5,0],
+				outerScaleFnt : "8pt Calibri",
+				outerScaleColor : "black",
+				outerScaleUnit : "PSI",
+				hasInnerScale : true,
+				innerScaleConvFactor : 0.068573,
+				innerScaleDiam : 96,
+				innerScaleStartLabel : 0,
+				innerScaleIntervals : [1,0.5,0],
+				innerScaleFnt : "8pt Arial",
+				innerScaleColor : "red",
+				innerScaleUnit : "Kg/cm3",
+				innerScaleToEnd : true,
+				dialBaseDiam : 25,
+				pointerColor: "blue",
+				digWd : 50,
+				digHt : 14,
+				digFnt : "12pt Calibri",
+				digBC : "#efefef"
+			}
+		];
+
+		var isRunning = [false, false];
+		var inputLevels = [
+			{curr : gaugeSettings[0].outerScaleRange.s, targ : gaugeSettings[0].outerScaleRange.s},
+			{curr : gaugeSettings[1].outerScaleRange.s, targ : gaugeSettings[1].outerScaleRange.s}
+		];
+
+		document.getElementById('btn0').addEventListener('click', function() {
+        		toggleDemo(0);}, false);
+		document.getElementById('btn1').addEventListener('click', function() {
+        		toggleDemo(1);}, false);
+
+		function toggleDemo(btnNum) {
+			var btnId = 'btn' + btnNum.toString();
+			if (!isRunning[btnNum]) {
+				isRunning[btnNum] = true;
+				document.getElementById(btnId).innerHTML = "Stop Demo";
+				if (timeoutLen == 500) {
+					timer = setInterval(function(){runDemo();},100);
+				}
+			} else {
+				isRunning[btnNum] = false;
+				document.getElementById(btnId).innerHTML = "Start Demo";
+				if (!isRunning[0] && !isRunning[1]) {
+					clearInterval(timer);
+					timeoutLen = 500;
+				}
+			}
+		}
+
+		var gauge1 = new Gauge("canvas", gaugeSettings[0]);  
+		var gauge2 = new Gauge("canvas2", gaugeSettings[1]);
+
+		gauge2.drawScreen();
+		gauge1.drawScreen();
+
+		var timeoutLen = 500;
+		var timer;
+		
+		function runDemo() {
+			var lbl = document.getElementById("lbl");
+			lbl.innerHTML = "Running demo..." + (timeoutLen + 1).toString();
+
+			for (var idx = 0; idx < 2; idx++) {
+				var gauge = (idx == 0) ? gauge1 : gauge2;
+				//lbl.innerHTML += (" " + idx + ": " + isRunning[idx]);
+				if (isRunning[idx]) {
+					if (inputLevels[idx].curr < inputLevels[idx].targ) {
+						inputLevels[idx].curr += (gaugeSettings[idx].outerScaleIntervals[1] * gaugeSettings[idx].inputGranularity);
+						if (inputLevels[idx].curr > inputLevels[idx].targ) inputLevels[idx].curr = inputLevels[idx].targ;
+					}
+					else if (inputLevels[idx].curr > inputLevels[idx].targ) {
+						inputLevels[idx].curr -= (gaugeSettings[idx].outerScaleIntervals[1] * gaugeSettings[idx].inputGranularity);
+						if (inputLevels[idx].curr < inputLevels[idx].targ) inputLevels[idx].curr = inputLevels[idx].targ;
+					}
+					else inputLevels[idx].targ = gaugeSettings[idx].outerScaleRange.s + (Math.round(Math.random()*((gaugeSettings[idx].outerScaleRange.e - gaugeSettings[idx].outerScaleRange.s) / gaugeSettings[idx].inputGranularity) * gaugeSettings[idx].inputGranularity));
+					//lbl.innerHTML += (" " + idx + ": [" + inputLevels[idx].curr.toString() + ", " + inputLevels[idx].targ.toString() + "]");
+				}
+				gauge.setInputLevel(inputLevels[idx].curr);
+				gauge.drawScreen();
+			}
+			if (timeoutLen-- < 0) {
+				clearInterval(timer);
+				for (var idx = 0; idx < 2; idx++) {
+					isRunning[idx] = false;
+					document.getElementById("btn" + idx.toString()).innerHTML = "Start Demo";
+				}
+				timeoutLen = 500;
+			}
+		}
+
+	}
+
+	</script>
+</head>
+<body>
+	<div style="position:absolute;top:50px;left:50px;">
+		<button id="btn0" type="button" style="float:right;display:inline;margin-top:100px;font-size:14px;">Start Demo</button>
+		<canvas id="canvas" width="500" height="500" >
+	Your browser does not support HTML5 Canvas
+		</canvas>
+		
+	</div>
+	<div style="position:absolute;top:550px;left:50px;">
+		<button id="btn1" type="button" style="float:right;display:inline;margin-top:100px;font-size:14px;">Start Demo</button>
+		<canvas id="canvas2" width="500" height="500" >
+	Your browser does not support HTML5 Canvas
+		</canvas>
+	</div>
+	<div style="position:absolute;top:50px;left:550px;">
+		<label id="lbl"></label>
+	</div>
+</body>
+</html>
