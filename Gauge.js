@@ -317,11 +317,11 @@ Gauge.prototype.drawScreen = function() {
 	drawArc(context, this.centerX, this.centerY, this.gaugeDiam, 0, 2*Math.PI, false, "#030303", 0.5);
 
     // add radial gradient for lighting effect
-	var grd = context.createRadialGradient(this.centerX, this.centerY, this.gaugeDiam, this.centerX*1.2, this.centerY*1.2, this.gaugeDiam * 0.75);
+	var grd = context.createRadialGradient(this.centerX, this.centerY, this.gaugeDiam-2, this.centerX, this.centerY, this.gaugeDiam * 0.75);
 	grd.addColorStop(0, "#222222");
-	grd.addColorStop(0.06, "#787878");
-	grd.addColorStop(0.1, "#222222");
-	grd.addColorStop(0.2, "#000000");
+	grd.addColorStop(0.2, "#787878");
+	grd.addColorStop(0.4, "#222222");
+	grd.addColorStop(0.6, "#000000");
 	context.fillStyle = grd;
 	context.fill();
 
@@ -370,12 +370,13 @@ Gauge.prototype.drawScreen = function() {
 	}
 
 	// inner black circle
-	drawArc(context, this.centerX, this.centerY, this.dialBaseDiam, 0, 2*Math.PI, true, "#000000", 1);
-	grd = context.createRadialGradient(this.centerX, this.centerY, this.dialBaseDiam, this.centerX*1.2, this.centerY*1.2, 0);
-	grd.addColorStop(0, "#222222");
-	grd.addColorStop(0.02, "#787878");
-	grd.addColorStop(0.1, "#222222");
-	grd.addColorStop(0.2, "#000000");
+	drawArc(context, this.centerX, this.centerY, this.dialBaseDiam, 0, 2*Math.PI, true, "#787878", 1);
+	grd = context.createRadialGradient(this.centerX, this.centerY, this.dialBaseDiam, this.centerX, this.centerY, 0);
+	grd.addColorStop(0, "#000");
+	grd.addColorStop(.2, "#222");
+	grd.addColorStop(0.5, "#555");
+	grd.addColorStop(0.85, "#777");
+	
 	context.fillStyle = grd;
 	context.fill();	
 
