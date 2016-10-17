@@ -16,7 +16,7 @@
 
 function Gauge(canvas, gaugeSettings) {
 
-	/******* guageSettings properties:  **************************
+	/******* gaugeSettings properties:  **************************
 
 	// inputGranularity is the smallest unit in which the input level is specified. 
 	// Input must be provided as a value within the range of the outer scale and at a granularity that can be less than 
@@ -408,11 +408,124 @@ Gauge.prototype.drawScreen = function() {
 	// to right justify display, assume each digit display is about 2/3 as wide as it is tall
 	writeMessage(context, digNum.toString(), this.digFnt, this.outerScaleColor, "center", "top", (this.digDispX + (this.digWd / 2)), this.digDispY);
 
-}
+};
+
+Gauge.prototype.updateSettings = function(gaugeSettings) {
+		this.inputGranularity = (gaugeSettings.hasOwnProperty("inputGranularity")) ? gaugeSettings.inputGranularity : 1;
+	if (this.inputGranularity > 1 || this.inputGranularity <= 0) this.inputGranularity = 1;
+	
+	//***** gauge title properties  *****// 
+	this.gaugeNameLn1 = (gaugeSettings.hasOwnProperty("titleLine1")) ? gaugeSettings.titleLine1 : "";
+	this.gaugeNameLn2 = (gaugeSettings.hasOwnProperty("titleLine2")) ? gaugeSettings.titleLine2 : "";
+	this.gaugeNmFnt = (gaugeSettings.hasOwnProperty("titleFont")) ? gaugeSettings.titleFont : "18pt Arial";
+
+	//***** gauge border and background properties  *****// 
+	this.gaugeDiam = (gaugeSettings.hasOwnProperty("gaugeDiam")) ? gaugeSettings.gaugeDiam : 175;
+	this.rimWidth = (gaugeSettings.hasOwnProperty("rimWidth")) ? gaugeSettings.rimWidth : 25;
+	this.faceColor = (gaugeSettings.hasOwnProperty("faceColor")) ? gaugeSettings.faceColor : "white";	
+
+	//***** centerpoint of gauge  *****// 
+	this.centerX = (gaugeSettings.hasOwnProperty("centerX")) ? gaugeSettings.centerX : 200;
+	this.centerY = (gaugeSettings.hasOwnProperty("centerY")) ? gaugeSettings.centerY : 250;
+
+	//***** start and finish degrees of scale  *****// 
+	this.startDegree = (gaugeSettings.hasOwnProperty("startDegree")) ? gaugeSettings.startDegree : 135;
+	this.endDegree = (gaugeSettings.hasOwnProperty("endDegree")) ? gaugeSettings.endDegree : 405;
+	this.startRadian = this.startDegree * (Math.PI/180);
+	this.endRadian = this.endDegree * (Math.PI/180);
+
+	//***** major scale properties  *****//
+	this.outerScaleDiam = (gaugeSettings.hasOwnProperty("outerScaleDiam")) ? gaugeSettings.outerScaleDiam : 100;
+
+	// first and last values (numbers) shown on the scale
+	this.outerScaleRange = (gaugeSettings.hasOwnProperty("outerScaleRange")) ? gaugeSettings.outerScaleRange : {s: 0, e: 6000};
+
+	// interval = # of units between scale's major, minor and subminor indicator marks (set an interval to 0 if not applicable)
+	this.outerScaleIntervals = (gaugeSettings.hasOwnProperty("outerScaleIntervals")) ? gaugeSettings.outerScaleIntervals : [500,100,0];
+
+	this.outerScaleFnt = (gaugeSettings.hasOwnProperty("outerScaleFnt")) ? gaugeSettings.outerScaleFnt : "8pt Calibri";
+	this.outerScaleColor = (gaugeSettings.hasOwnProperty("outerScaleColor")) ? gaugeSettings.outerScaleColor : "black";
+	this.outerScaleUnit = (gaugeSettings.hasOwnProperty("outerScaleUnit")) ? gaugeSettings.outerScaleUnit : "PSI";
+
+	//***** minor scale properties  *****//
+	// include inner scale?
+	this.hasInnerScale = (gaugeSettings.hasOwnProperty("hasInnerScale")) ? gaugeSettings.hasInnerScale : false;
+
+	// decimal number to multiply outer scale value by to get equivalent inner scale value (for determining step intervals for marking inner scale indicators)
+	this.innerScaleConvFactor = (gaugeSettings.hasOwnProperty("innerScaleConvFactor")) ? gaugeSettings.innerScaleConvFactor : 0.068573;
+	
+	this.innerScaleDiam = (gaugeSettings.hasOwnProperty("innerScaleDiam")) ? gaugeSettings.innerScaleDiam : 96;
+
+	// start labeling major indicator marks at this number
+	this.innerScaleStartLabel = (gaugeSettings.hasOwnProperty("innerScaleStartLabel")) ? gaugeSettings.innerScaleStartLabel : 0;
+
+	// interval = # of units between scale's major, minor and subminor indicator marks (set an interval to 0 if not applicable)
+	this.innerScaleIntervals = (gaugeSettings.hasOwnProperty("innerScaleIntervals")) ? gaugeSettings.innerScaleIntervals : [50,10,0];
+
+	this.innerScaleFnt = (gaugeSettings.hasOwnProperty("innerScaleFnt")) ? gaugeSettings.innerScaleFnt : "8pt Arial";
+	this.innerScaleColor = (gaugeSettings.hasOwnProperty("innerScaleColor")) ? gaugeSettings.innerScaleColor : "red";
+	this.innerScaleUnit = (gaugeSettings.hasOwnProperty("innerScaleUnit")) ? gaugeSettings.innerScaleUnit : "Kg/cm3";
+
+	// if end of range is before end of outer scale's range, should additional tick markings be shown?
+	this.innerScaleToEnd = (gaugeSettings.hasOwnProperty("innerScaleToEnd")) ? gaugeSettings.innerScaleToEnd : true;
+
+	//***** dial base/center circle properties  *****//
+	this.dialBaseDiam = (gaugeSettings.hasOwnProperty("dialBaseDiam")) ? gaugeSettings.dialBaseDiam : 25;
+	
+	//***** pointer properties  *****//
+	this.pointerColor = (gaugeSettings.hasOwnProperty("pointerColor")) ? gaugeSettings.pointerColor : "blue";
+	
+	//***** conversions, lookups, max settings  *****//
+	this.maxSteps = ((this.outerScaleRange.e - this.outerScaleRange.s) / this.inputGranularity) + 1;
+	this.lookupTbl = createLookupTbl(this.startRadian, this.endRadian, this.maxSteps);
+	this.innerStepConvRate = this.maxSteps / ((this.outerScaleRange.e * this.innerScaleConvFactor) - (this.outerScaleRange.s * this.innerScaleConvFactor));
+
+	//***** digital display properties  *****//
+	this.digWd = (gaugeSettings.hasOwnProperty("digWd")) ? gaugeSettings.digWd : 60; 
+	this.digHt = (gaugeSettings.hasOwnProperty("digHt")) ? gaugeSettings.digHt : 14;
+	this.digFnt = (gaugeSettings.hasOwnProperty("digFnt")) ? gaugeSettings.digFnt : "12pt Calibri";
+	this.digBC = (gaugeSettings.hasOwnProperty("digBC")) ? gaugeSettings.digBC : "#efefef";
+	this.digDispX = this.centerX - (this.digWd / 2);  
+	this.digDispY = this.centerY + this.outerScaleDiam + (this.digHt / 2); 
+	this.maxDigits = Math.floor(this.outerScaleRange.e).toString().length;
+	this.digDispFixed = 0;
+	if (this.inputGranularity < 1) {
+		// add digits for decimal and 1 - 3 decimals
+		var decs = this.inputGranularity.toFixed(3).toString(), addTo = 2;
+		if (decs.substr(decs.length - 1,1) == "0") {
+			addTo++;
+			if (decs.substr(decs.length - 2,1) == "0") addTo++;
+		}
+		this.maxDigits += addTo;
+		this.digDispFixed = addTo - 1;
+	}
+
+	//***** font sizes for spacing calculations  *****//
+	this.gaugeNmFS = parseInt(this.gaugeNmFnt.replace(/[^0-9 ]/g, ""));
+	if (!this.gaugeNmFS) this.gaugeNmFS = 18;
+
+	this.outerScaleFS = parseInt(this.outerScaleFnt.replace(/[^0-9 ]/g, ""));
+	if (!this.outerScaleFS) this.outerScaleFS = 8;
+
+	this.innerScaleFS = parseInt(this.innerScaleFnt.replace(/[^0-9 ]/g, ""));
+	if (!this.innerScaleFS) this.innerScaleFS = 8;
+	
+	this.digFS = parseInt(this.digFnt.replace(/[^0-9 ]/g, ""));
+	if (!this.digFS) this.digFS = 12;
+
+	//***** unit label positions *****//
+	this.gap = ((this.centerY + this.outerScaleDiam) - (this.centerY + this.dialBaseDiam) - ((this.outerScaleFS + this.innerScaleFS) * 1.25)) / 7;
+	this.minorUnitY = this.centerY + this.dialBaseDiam + (this.gap * 3);
+	this.majorUnitY = this.minorUnitY + this.innerScaleFS + this.gap;
+
+	// current input level
+	this.inputLevel = this.outerScaleRange.s;
+
+};
 
 Gauge.prototype.setInputLevel = function(input) {
 	this.inputLevel = input;
 	this.index = Math.floor((input - this.outerScaleRange.s) / this.inputGranularity);
 	if (this.index < 0) this.index = 0;
 	if (this.index >= this.maxSteps) this.index = this.maxSteps - 1;
-}
+};
